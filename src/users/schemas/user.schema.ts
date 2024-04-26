@@ -30,13 +30,7 @@ class Addresses {
 @Schema({ timestamps: true })
 export class User {
   @Prop()
-  firstName: string;
-
-  @Prop()
-  middleName: string;
-
-  @Prop()
-  lastName: string;
+  name: string;
 
   @Prop({ required: true })
   email: string;

@@ -29,7 +29,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err, user, info) {
     // You can throw an exception based on either "info" or "err" arguments
     if (err || !user) {
-      throw err || new UnauthorizedException('Invalid token');
+      throw (
+        err ||
+        new UnauthorizedException(
+          'Invalid token or there is no token in the Header request',
+        )
+      );
     }
     return user;
   }
