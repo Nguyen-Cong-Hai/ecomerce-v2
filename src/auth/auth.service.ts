@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from 'src/users/dto/create-user.dto';
@@ -87,5 +87,71 @@ export class AuthService {
     });
 
     return refreshToken;
+  };
+
+  processNewToken = async (refreshToken: string, response: Response) => {
+    try {
+      this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      });
+
+      let user = await this.usersService.findUserByToken(refreshToken);
+
+      if (user) {
+        //update refresh token
+        const { _id, name, email, role, address, avatar, phoneNumber } = user;
+
+        const payload = {
+          sub: 'token refresh',
+          iss: 'from server',
+          _id,
+          name,
+          email,
+          role,
+        };
+
+        const refresh_token = this.createRefreshToken(payload);
+
+        //update user with refresh token in database
+        await this.usersService.updateUserToken(refresh_token, _id.toString());
+
+        //set refresh token in cookie
+        response.clearCookie('refresh_token');
+
+        response.cookie('refresh_token', refresh_token, {
+          httpOnly: true,
+          maxAge: ms(this.configService.get<string>('JWT_REFRESH_EXPIRES')),
+        });
+
+        return {
+          access_token: this.jwtService.sign(payload),
+          user: {
+            _id,
+            name,
+            email,
+            address: address || '',
+            phoneNumber: phoneNumber || '',
+            avatar: avatar || '',
+            role,
+          },
+        };
+      } else {
+        throw new BadRequestException(
+          'Refresh token is invalid, please login again.',
+        );
+      }
+    } catch (error) {
+      throw new BadRequestException(
+        'Refresh token is invalid, please login again.',
+      );
+    }
+  };
+
+  logout = async (user: IUser, response: Response) => {
+    await this.usersService.updateUserToken('', user._id);
+
+    response.clearCookie('refresh_token');
+
+    return 'Ok';
   };
 }
