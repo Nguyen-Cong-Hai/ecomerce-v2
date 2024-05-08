@@ -6,6 +6,7 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { join } from 'path';
 import { TransformInterceptor } from './core/transform.interceptor';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -34,6 +35,9 @@ async function bootstrap() {
     preflightContinue: false,
     credentials: true,
   });
+
+  //config helmet
+  app.use(helmet());
 
   //config versioning
   app.setGlobalPrefix('api');

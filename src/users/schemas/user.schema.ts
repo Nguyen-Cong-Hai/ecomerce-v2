@@ -6,7 +6,7 @@ export type UserDocument = HydratedDocument<User>;
 
 class Addresses {
   @Prop()
-  address: string;
+  price: number;
 
   @Prop()
   city: string;
@@ -15,16 +15,13 @@ class Addresses {
   phoneNumber: string;
 
   @Prop()
-  firstName: string;
+  name: string;
 
   @Prop()
-  lastName: string;
+  discount: number;
 
-  @Prop()
-  middleName: string;
-
-  @Prop({ type: Boolean, default: false })
-  isDefault: boolean;
+  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Product' })
+  product: string;
 }
 
 @Schema({ timestamps: true })
