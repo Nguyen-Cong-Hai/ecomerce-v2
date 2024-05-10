@@ -6,6 +6,8 @@ import { IUser } from 'src/users/users.interface';
 import ms from 'ms';
 import { UsersService } from 'src/users/users.service';
 import { Response } from 'express';
+import { ChangePasswordDto } from 'src/users/dto/change-password.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +15,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   //Username and password la 2 tham so thu vien passport cha ve
@@ -153,5 +156,45 @@ export class AuthService {
     response.clearCookie('refresh_token');
 
     return 'Ok';
+  };
+
+  changePassword = async (data: ChangePasswordDto, user: IUser) => {
+    await this.usersService.changePasswordUser(data, user._id);
+
+    return 'Change password success';
+  };
+
+  forgotPassword = async (email: string) => {
+    let checkUser = await this.usersService.findOneByUsername(email);
+
+    if (!checkUser) {
+      throw new BadRequestException('Email is not existed');
+    }
+
+    const payload = {
+      sub: 'token fotgot password',
+      iss: 'from server',
+      email,
+    };
+
+    const forgotPasswordToken = this.jwtService.sign(payload, {
+      secret: this.configService.get<string>('JWT_RESET_PASSWORD'),
+      expiresIn:
+        ms(this.configService.get<string>('JWT_RESET_PASSWORD_EXPIRES')) / 1000,
+    });
+
+    checkUser.resetPasswordToken = forgotPasswordToken;
+
+    const resetLink = `${this.configService.get<string>('URL_RESET_PASSWORD')}?secret=${forgotPasswordToken}`;
+
+    await checkUser.save();
+
+    await this.mailService.sendEmailForgotPassword(
+      email,
+      checkUser.name,
+      resetLink,
+    );
+
+    return 'Reset password success';
   };
 }

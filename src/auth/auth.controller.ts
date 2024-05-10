@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Patch,
   Post,
   Req,
   Res,
@@ -13,6 +14,7 @@ import { LocalAuthGuard } from './local-auth.guard';
 import { Public, ResponseMessage, User } from 'src/decorator/customize';
 import { Response, Request } from 'express';
 import { IUser } from 'src/users/users.interface';
+import { ChangePasswordDto } from 'src/users/dto/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -60,5 +62,17 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
   ) {
     return this.authService.logout(user, response);
+  }
+
+  @Patch('/change-password')
+  @ResponseMessage('Change password user')
+  handleChangePassword(@Body() data: ChangePasswordDto, @User() user: IUser) {
+    return this.authService.changePassword(data, user);
+  }
+
+  @Post('/forgot-password')
+  @ResponseMessage('Forgot password')
+  handleForgotPassword(@Body() email: string) {
+    return this.authService.forgotPassword(email);
   }
 }

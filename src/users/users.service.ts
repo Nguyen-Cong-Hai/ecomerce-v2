@@ -11,6 +11,7 @@ import mongoose, { Model } from 'mongoose';
 import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
 import { Role } from 'src/roles/schemas/role.schema';
 import aqp from 'api-query-params';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class UsersService {
@@ -139,8 +140,11 @@ export class UsersService {
     return await this.userModel
       .findOne({
         email: username,
+        userType: CONFIG_USER_TYPE.DEFAULT,
       })
-      .populate({ path: 'role', select: 'name permissions' });
+      .select('-password')
+      .populate({ path: 'role', select: 'name permissions' })
+      .exec();
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -198,5 +202,32 @@ export class UsersService {
       .findOne({ refreshToken })
       .populate({ path: 'role', select: 'name permissions' })
       .exec();
+  };
+
+  changePasswordUser = async (data: ChangePasswordDto, id: string) => {
+    let checkUser = await this.userModel.findOne({ _id: id });
+
+    if (!checkUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { currentPassword, newPassword } = data;
+
+    const compareCurrentPassword = this.isValidPassword(
+      currentPassword,
+      checkUser.password,
+    );
+
+    if (!compareCurrentPassword) {
+      throw new BadRequestException('Current password is wrong');
+    }
+
+    const hash = this.getHashPassword(newPassword);
+
+    checkUser.password = hash;
+
+    await checkUser.save();
+
+    return checkUser;
   };
 }
