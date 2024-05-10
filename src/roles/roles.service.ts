@@ -2,9 +2,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { Role } from './schemas/role.schema';
-import { ConflictException, Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
+import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
+import { CONFIG_PERMISSIONS } from 'src/constants/enum';
 
 @Injectable()
 export class RolesService {
@@ -14,7 +19,7 @@ export class RolesService {
   ) {}
 
   async create(createRoleDto: CreateRoleDto) {
-    const { name } = createRoleDto;
+    const { name, permissions } = createRoleDto;
 
     //check nameRole is exist or not
     const existedRole = await this.roleModel.findOne({
@@ -22,10 +27,15 @@ export class RolesService {
     });
 
     if (existedRole !== null) {
-      throw new ConflictException('Role is already existed');
+      throw new ConflictException('The name of role is existed');
     }
 
-    const createdRole = await this.roleModel.create({ name });
+    const createdRole = await this.roleModel.create({
+      name,
+      permissions: permissions?.includes(CONFIG_PERMISSIONS.ADMIN)
+        ? []
+        : permissions,
+    });
 
     return createdRole;
   }
@@ -62,15 +72,82 @@ export class RolesService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} role`;
+  async findOne(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Object ID');
+    }
+
+    let role = await this.roleModel.findOne({ _id: id }).exec();
+
+    if (role === null) {
+      throw new BadRequestException('The role is not exsited');
+    }
+
+    return role;
   }
 
-  update(id: number, updateRoleDto: UpdateRoleDto) {
-    return `This action updates a #${id} role`;
+  async update(id: string, updateRoleDto: UpdateRoleDto) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Object ID');
+    }
+
+    const { name, permissions } = updateRoleDto;
+
+    const checkRole = await this.roleModel.findOne({ _id: id }).exec();
+
+    if (checkRole === null) {
+      throw new BadRequestException('The role is not exsited');
+    }
+
+    if (
+      checkRole.name === 'Admin' ||
+      checkRole.name === 'Basic' ||
+      checkRole.permissions.includes(CONFIG_PERMISSIONS.ADMIN) ||
+      checkRole.permissions.includes(CONFIG_PERMISSIONS.BASIC)
+    ) {
+      throw new BadRequestException('The role is not allowed to update');
+    }
+
+    if (name && name !== checkRole.name) {
+      const existedRole = await this.roleModel
+        .findOne({
+          name: name,
+          _id: { $ne: id },
+        })
+        .exec();
+
+      if (existedRole !== null) {
+        throw new BadRequestException('The name of role is existed');
+      }
+    }
+
+    const updatedRole = await this.roleModel
+      .findByIdAndUpdate(
+        id,
+        {
+          name,
+          permissions,
+        },
+        { new: true },
+      )
+      .exec();
+
+    return updatedRole;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} role`;
+  async remove(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid Object ID');
+    }
+
+    const checkRole = await this.roleModel.findOne({ _id: id }).exec();
+
+    if (checkRole === null) {
+      throw new BadRequestException('The role is not exsited');
+    }
+
+    const deletedRole = await this.roleModel.findByIdAndDelete(id).exec();
+
+    return deletedRole;
   }
 }

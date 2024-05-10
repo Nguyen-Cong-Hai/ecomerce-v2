@@ -12,6 +12,7 @@ import { genSaltSync, hashSync, compareSync } from 'bcryptjs';
 import { Role } from 'src/roles/schemas/role.schema';
 import aqp from 'api-query-params';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CONFIG_USER_TYPE } from 'src/constants/enum';
 
 @Injectable()
 export class UsersService {
@@ -105,7 +106,7 @@ export class UsersService {
       .limit(defaultLimit)
       // @ts-ignore: Unreachable code error
       .sort(sort)
-      .populate(population)
+      .populate({ path: 'role', select: 'name permissions' })
       .exec();
 
     return {
@@ -142,7 +143,6 @@ export class UsersService {
         email: username,
         userType: CONFIG_USER_TYPE.DEFAULT,
       })
-      .select('-password')
       .populate({ path: 'role', select: 'name permissions' })
       .exec();
   }
