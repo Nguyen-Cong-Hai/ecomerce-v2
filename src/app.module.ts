@@ -8,6 +8,7 @@ import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { CitiesModule } from './cities/cities.module';
+import { ProductTypesModule } from './product-types/product-types.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { CitiesModule } from './cities/cities.module';
     AuthModule,
     MailModule,
     CitiesModule,
+    ProductTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
