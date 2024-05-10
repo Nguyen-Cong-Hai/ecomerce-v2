@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
+import { CitiesModule } from './cities/cities.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MailModule } from './mail/mail.module';
     RolesModule,
     AuthModule,
     MailModule,
+    CitiesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
